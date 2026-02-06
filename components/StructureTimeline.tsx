@@ -6,58 +6,42 @@ interface StructureTimelineProps {
   totalDuration: string;
 }
 
-// Helper to convert mm:ss to seconds
 const toSeconds = (timeStr: string): number => {
   if (!timeStr) return 0;
   const [min, sec] = timeStr.split(':').map(Number);
   return (min * 60) + sec;
 };
 
-// Helper to format seconds back to mm:ss
 const formatTime = (seconds: number): string => {
   const m = Math.floor(Math.abs(seconds) / 60);
   const s = Math.floor(Math.abs(seconds) % 60);
   return `${seconds < 0 ? '-' : ''}${m}:${s.toString().padStart(2, '0')}`;
 };
 
-// Label mapping function
 const getDisplayLabel = (description: string): string => {
-  const d = description.toLowerCase();
-  if (d.includes('drop')) return 'DROP';
-  if (d.includes('break')) return 'BREAK';
-  if (d.includes('estribillo')) return 'CHORUS'; // Changed to CHORUS for more DJ feel
-  if (d.includes('estrofa')) return 'VERSE';
-  if (d.includes('intro')) return 'INTRO';
-  if (d.includes('outro')) return 'OUTRO';
-  if (d.includes('puente')) return 'BUILD';
-  return description.toUpperCase().substring(0, 8); // Fallback
+  const d = description.toUpperCase();
+  if (d.includes('ESTRIBILLO') || d.includes('EST.')) return 'EST.';
+  if (d.includes('ESTROFA') || d.includes('VOCAL')) return 'VOCAL';
+  if (d.includes('PUENTE') || d.includes('BRIDGE')) return 'PUENTE';
+  if (d.includes('DROP')) return 'DROP';
+  if (d.includes('INTRO')) return 'INTRO';
+  if (d.includes('OUTRO')) return 'OUTRO';
+  return d.substring(0, 8);
 };
 
 const getSectionColor = (type: string, energy: string) => {
-  const t = type.toLowerCase();
-  
-  // High energy - Drops get Red/Intense
-  if (t.includes('drop')) return 'bg-red-600 text-white border-red-500';
-  if (t.includes('estribillo') || energy === 'High') return 'bg-dj-accent text-black border-yellow-500'; 
-  
-  // Build-up / Transition
-  if (t.includes('puente') || t.includes('build') || energy === 'Build-up') return 'bg-orange-500 text-white'; 
-  
-  // Medium
-  if (t.includes('estrofa') || t.includes('verse')) return 'bg-zinc-700 text-zinc-300'; 
-  
-  // Low / Breakdown - Deep Blue or Dark
-  if (t.includes('break') || t.includes('down')) return 'bg-blue-900/50 text-blue-200 border-blue-900';
-  if (t.includes('intro') || t.includes('outro')) return 'bg-zinc-800 text-zinc-500'; 
-  
-  // Fallback
+  const t = type.toUpperCase();
+  if (t.includes('DROP')) return 'bg-red-600 text-white';
+  if (t.includes('EST.')) return 'bg-dj-accent text-black'; 
+  if (t.includes('PUENTE')) return 'bg-orange-500 text-white'; 
+  if (t.includes('VOCAL')) return 'bg-zinc-700 text-zinc-300'; 
+  if (t.includes('INTRO') || t.includes('OUTRO')) return 'bg-zinc-800 text-zinc-500'; 
   return 'bg-zinc-700 text-white';
 };
 
 export const StructureTimeline: React.FC<StructureTimelineProps> = ({ points, totalDuration }) => {
   const totalSeconds = toSeconds(totalDuration) || 180;
 
-  // Process segments
   const segments = points.map((point, index) => {
     const start = toSeconds(point.timestamp);
     const nextPoint = points[index + 1];
@@ -69,7 +53,7 @@ export const StructureTimeline: React.FC<StructureTimelineProps> = ({ points, to
       ...point,
       start,
       end,
-      widthPercent: Math.max(widthPercent, 0.5) 
+      widthPercent: Math.max(widthPercent, 1) 
     };
   });
 
@@ -78,15 +62,14 @@ export const StructureTimeline: React.FC<StructureTimelineProps> = ({ points, to
       <div className="flex justify-between items-end mb-3 px-1">
          <h3 className="text-sm font-bold text-dj-secondary uppercase tracking-widest flex items-center gap-2">
             <span className="w-2 h-2 bg-dj-accent rounded-full"></span>
-            Estructura Cronológica
+            Estructura de la Pista
          </h3>
-         <span className="text-sm font-mono text-white font-bold bg-zinc-800 px-2 py-1 rounded">
-            TOTAL: {totalDuration}
+         <span className="text-sm font-mono text-zinc-400 font-bold bg-zinc-900 border border-zinc-800 px-3 py-1 rounded">
+            DURACIÓN: {totalDuration}
          </span>
       </div>
       
-      {/* Container */}
-      <div className="relative w-full h-48 bg-zinc-950 rounded-xl overflow-hidden flex shadow-2xl ring-1 ring-zinc-800">
+      <div className="relative w-full h-40 bg-zinc-950 rounded-xl overflow-hidden flex shadow-2xl ring-1 ring-zinc-800">
         {segments.map((seg, idx) => {
           const colorClass = getSectionColor(seg.description, seg.energy);
           const displayLabel = getDisplayLabel(seg.description);
@@ -97,42 +80,33 @@ export const StructureTimeline: React.FC<StructureTimelineProps> = ({ points, to
               style={{ width: `${seg.widthPercent}%` }}
               className={`
                 relative h-full group flex flex-col justify-center items-center
-                border-r border-black/20 hover:brightness-110 transition-all duration-200
+                border-r border-black/30 hover:brightness-110 transition-all duration-200
                 ${colorClass}
               `}
-              title={`${seg.description} - ${seg.energy}`}
             >
-              {/* Top Time (Normal) */}
-              <div className="absolute top-2 left-0 w-full text-center opacity-70 group-hover:opacity-100 transition-opacity z-20">
-                 <span className="text-[9px] font-mono font-bold bg-black/40 px-1 py-0.5 rounded text-white shadow-sm backdrop-blur-sm">
-                   {formatTime(seg.start)}
+              {/* TOP: TIEMPO REGRESIVO */}
+              <div className="absolute top-2 left-0 w-full text-center z-20">
+                 <span className="text-[10px] font-mono font-bold bg-black/30 px-1 py-0.5 rounded text-white/80">
+                   {formatTime(seg.start - totalSeconds)}
                  </span>
               </div>
 
-              {/* Main Label - VERTICAL ORIENTATION */}
-              <div className="z-10 w-full h-full flex items-center justify-center overflow-hidden py-6 pointer-events-none">
-                 <span className="block text-sm md:text-xl font-black uppercase tracking-widest drop-shadow-md transform [writing-mode:vertical-rl] rotate-180 whitespace-nowrap opacity-90">
+              {/* LABEL VERTICAL */}
+              <div className="z-10 w-full h-full flex items-center justify-center overflow-hidden py-4">
+                 <span className="block text-xs md:text-lg font-black uppercase tracking-tighter transform [writing-mode:vertical-rl] rotate-180 whitespace-nowrap opacity-90">
                    {displayLabel}
                  </span>
               </div>
 
-              {/* Bottom Time (Countdown) */}
-              <div className="absolute bottom-2 left-0 w-full text-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                 <span className="text-[9px] font-mono font-bold bg-black/40 px-1 py-0.5 rounded text-white shadow-sm backdrop-blur-sm">
-                    {formatTime(seg.start - totalSeconds)}
+              {/* BOTTOM: TIEMPO NORMAL */}
+              <div className="absolute bottom-2 left-0 w-full text-center z-20">
+                 <span className="text-[10px] font-mono font-bold bg-black/30 px-1 py-0.5 rounded text-white/80">
+                    {formatTime(seg.start)}
                  </span>
               </div>
-              
-              {/* Hover highlight overlay */}
-              <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 pointer-events-none"></div>
             </div>
           );
         })}
-      </div>
-      
-      {/* Simple Progress Bar Indicator below */}
-      <div className="w-full h-1 bg-zinc-800 mt-1">
-         <div className="w-full h-full bg-gradient-to-r from-zinc-800 via-dj-accent to-zinc-800 opacity-20"></div>
       </div>
     </div>
   );
